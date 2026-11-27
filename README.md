@@ -8,6 +8,7 @@
 | 分派运行 | 使用独立的历史训练、整班留出和待修分区，由 worker 计算 |
 | 分站报告 | 查看每班和各类别的留出表现、先验基线、逐单分数及待修队列 |
 | 交班签核 | 记录签核决定与审计；通过后开放正式 CSV 和查阅员结果访问 |
+| 派站领单 | 两个柜台分批报修，签核后在工位名额内重排未领工单，工位按清单版本领单 |
 
 ## 启动
 
@@ -30,8 +31,8 @@ API 绑定 `127.0.0.1:19433`，OpenAPI 文件位于 `http://127.0.0.1:19433/api/
 
 | 本地演示账号 | 口令 | 可执行动作 |
 |---|---|---|
-| `analyst@demo.local` | `Demo-2611!` | 导入台账，发起运行，查看结果，导出获批 CSV |
-| `admin@demo.local` | `Demo-2611!` | 导入台账，发起运行，签核交班，查看审计，导出获批 CSV |
+| `analyst@demo.local` | `Demo-2611!` | 导入台账，发起运行，查看结果，导出获批 CSV，提交报修批次，登记工位领单 |
+| `admin@demo.local` | `Demo-2611!` | 导入台账，发起运行，签核交班，查看审计，导出获批 CSV，调整班次名额，签核报修批次 |
 | `viewer@demo.local` | `Demo-2611!` | 查看来源与获批结果，下载获批 CSV |
 
 ## API
@@ -45,12 +46,17 @@ API 绑定 `127.0.0.1:19433`，OpenAPI 文件位于 `http://127.0.0.1:19433/api/
 | 预览来源 | `GET /api/datasets/{dataset_id}` | `offset` 和 `limit` 分页 |
 | 提交和查看运行 | `POST /api/runs`、`GET /api/runs/{run_id}` | 提交 `label`、`dataset_id` 和可选的 `settings`，查询运行状态和结果 |
 | 签核交班 | `POST /api/runs/{run_id}/review` | 提交 `decision` 和 `note`，签核通过用 `approved` |
+| 查看班次派站板 | `GET /api/dispatch/{shift_id}` | 工位名额、已领数、清单版本 `revision` 与逐单状态 |
+| 设置班次名额 | `PUT /api/dispatch/{shift_id}/quota` | 提交 `{"blade":4,"boot":4,"fastener":4}`，需负责人 |
+| 提交报修批次 | `POST /api/dispatch/batches` | 提交 `{"run_id":1,"shift_id":"SR-P01","counter":"东柜"}`，取已完成运行的该班待修单 |
+| 签核批次并重排 | `POST /api/dispatch/batches/{batch_id}/approve` | 未领旧单与新批一起在名额内重排，需负责人 |
+| 工位领单 | `POST /api/dispatch/{shift_id}/claims` | 提交 `{"ticket_id":"SR-P01-01","station":"blade","revision":2}`，重试幂等 |
 | 下载结果 | `GET /api/runs/{run_id}/export/{key}` | `pending_routes`、`holdout_by_shift`、`holdout_by_label`、`holdout_predictions`、`training_profile` |
 | 查审计记录 | `GET /api/audit` | 管理员近期操作记录 |
 
 ## 本地开发
 
-`backend/src/domain/` 包含输入规则、班次夹具、文本特征、分类器、评估与报表，使用 Python 3.11 和 scikit-learn 1.6.1。`backend/src/routes/`、`services/` 和 `models/` 提供 FastAPI 工作流和持久化。`backend/scripts/seed_demo.py` 按账号和文件名初始化演示台账。`backend/src/constants/workflow.py` 定义 JWT 角色、运行状态和签核决定；分区与故障类别列于 `backend/src/domain/settings.py`。第三方依赖采用各自许可证。
+`backend/src/domain/` 包含输入规则、班次夹具、文本特征、分类器、评估、报表与派站调度，使用 Python 3.11 和 scikit-learn 1.6.1。`backend/src/routes/`、`services/` 和 `models/` 提供 FastAPI 工作流和持久化。`backend/scripts/seed_demo.py` 按账号和文件名初始化演示台账。`backend/src/constants/workflow.py` 定义 JWT 角色、运行状态和签核决定；分区与故障类别列于 `backend/src/domain/settings.py`。第三方依赖采用各自许可证。
 
 安装 `backend/requirements.txt` 后，从项目根目录运行算法 oracle。校验读取项目的真实 CSV 工具以及业务入口，通过标准库独立复算模型分数。
 

@@ -10,6 +10,7 @@ FIELDS = {
 }
 STATIONS = {"blade": "冰刀刃磨台", "boot": "鞋体整备台", "fastener": "固定件检修台"}
 MANUAL_STATION = "柜台人工分流"
+DEFAULT_STATION_CAPACITY = 4
 SPLITS = ("train", "holdout", "pending")
 NGRAM_RANGE = (2, 4)
 SETTINGS = [
@@ -28,6 +29,7 @@ SPEC = {
         "runs": "短文本分派模型",
         "results": "分站与留出报告",
         "reviews": "交班签核",
+        "dispatch": "班次派站与工位领单",
     },
     "limitation": "留出分数反映所选班次。置信分数未经概率校准，单张报修单可含多处故障。",
     "dataset_name": "20261125-冰鞋租赁报修交班.csv",
